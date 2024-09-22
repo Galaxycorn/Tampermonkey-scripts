@@ -7,7 +7,7 @@
 // @description Add download links to retroachievements.org Supported Game Files page e.g. https://retroachievements.org/game/19339/hashes
 // @author origin:wholee fixed by galaxycorn
 // @match https://retroachievements.org/game/*/hashes
-// @grant none
+// @grant GM_addStyle
 // @run-at document-end
 // ==/UserScript==
 
@@ -38,9 +38,26 @@
 // Rename NES and SNES collections to match ConsoleName update
 // 1.0.01: wrapped download links in
 // 1.0.1: Added gamecube + fixed issue with new website
+// 1.0.2: Add React support with loading scripts 
 
-window.addEventListener('load', () => {
-    (function() {
+(function() {
+    'use strict';
+
+    // Load React and ReactDOM
+    const loadScript = (src, callback) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = callback;
+        document.head.appendChild(script);
+    };
+
+    loadScript('https://unpkg.com/react@17/umd/react.development.js', () => {
+        loadScript('https://unpkg.com/react-dom@17/umd/react-dom.development.js', () => {
+            console.log('React and ReactDOM loaded');
+
+            // Your existing logic here
+            window.addEventListener('load', () => {
+              (function() {
 
         'use strict';
 
@@ -277,4 +294,7 @@ window.addEventListener('load', () => {
                 console.log(error);
             }
     }
-});
+            });
+        });
+    });
+})();
