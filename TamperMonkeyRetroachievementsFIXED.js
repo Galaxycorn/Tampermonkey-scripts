@@ -2,8 +2,8 @@
 // @name TamperMonkeyRetroachievementsFixed
 // @require https://github.com/abdolence/x2js/blob/master/xml2json.js
 // @namespace https://archive.org/details/retroachievements_collection_v5
-// @updateURL https://archive.org/download/retroachievements_collection_v5/TamperMonkeyRetroachievements.js
-// @downloadURL https://archive.org/download/retroachievements_collection_v5/TamperMonkeyRetroachievements.js
+// @updateURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
+// @downloadURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
 // @version 1.0.1
 // @description Add download links to retroachievements.org Supported Game Files page e.g. https://retroachievements.org/game/19339/hashes
 // @author origin:wholee fixed by galaxycorn
