@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name TamperMonkeyRetroachievements
+// @name TamperMonkeyRetroachievementsFixed
 // @namespace https://archive.org/details/retroachievements_collection_v5
 // @updateURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
 // @downloadURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
