@@ -1,18 +1,18 @@
 // ==UserScript==
 // @name TamperMonkeyRetroachievementsFixed
+// @require https://github.com/abdolence/x2js/blob/master/xml2json.js
 // @namespace https://archive.org/details/retroachievements_collection_v5
-// @updateURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
-// @downloadURL https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/TamperMonkeyRetroachievementsFIXED.js
-// @version 1.0.01
+// @updateURL https://archive.org/download/retroachievements_collection_v5/TamperMonkeyRetroachievements.js
+// @downloadURL https://archive.org/download/retroachievements_collection_v5/TamperMonkeyRetroachievements.js
+// @version 1.0.1
 // @description Add download links to retroachievements.org Supported Game Files page e.g. https://retroachievements.org/game/19339/hashes
-// @author wholee
+// @author origin:wholee fixed by galaxycorn
 // @match https://retroachievements.org/game/*/hashes
 // @icon https://archive.org/images/glogo.jpg
 // @grant none
 // @run-at document-end
 // ==/UserScript==
 
-//
 // 0.7: Updated archiveOrgLastModified URL
 // 0.8: Don't call archive.org with every page refresh
 // 0.9: Refactor code
@@ -39,6 +39,7 @@
 // Split PlayStation 2 in two due to the size
 // Rename NES and SNES collections to match ConsoleName update
 // 1.0.01: wrapped download links in
+// 1.0.1: Added gamecube + fixed issue with new website
 
 window.addEventListener('load', () => {
     (function() {
@@ -47,13 +48,14 @@ window.addEventListener('load', () => {
     
         const collectionName = 'retroachievements_collection';
         const mainCollectionItem = 'v5';
-        const separateCollectionItems = ['NES-Famicom', 'SNES-Super Famicom', 'PlayStation', 'PlayStation 2', 'PlayStation Portable', 'GameCube'];
+        const separateCollectionItems = ['NES-Famicom', 'SNES-Super Famicom', 'PlayStation', 'PlayStation 2', 'PlayStation Portable'];
     
         const collectionDownloadURL = 'https://archive.org/download/' + collectionName;
         const collectionDetailsURL = 'https://archive.org/details/' + collectionName + '_' + mainCollectionItem;
         const collectionLastModifiedURL = 'https://archive.org/metadata/' + collectionName + '_' + mainCollectionItem + '/item_last_updated';
         const FBNeoROMSDownloadURL = 'https://archive.org/download/2020_01_06_fbn/roms/';
         const FBNeoROMSDetailsURL = 'https://archive.org/details/2020_01_06_fbn/';
+        const collectionGameCubeDownloadURL = 'https://archive.org/download/ngcgciso0z-ztm/';
     
         const retroachievementsHashList = 'TamperMonkeyRetroachievements.json';
     
@@ -68,62 +70,91 @@ window.addEventListener('load', () => {
         // console.log(collectionLastUpdated)
         // console.log(currentUnixTimestamp)
         // console.log(collectionLastUpdated + updateInterval)
-        if(isNaN(collectionLastUpdated) || currentUnixTimestamp > collectionLastUpdated + updateInterval){
+
+        // parse gameCube data from my git
+        if(!localStorage.getItem('CollectionGameCube')){
+            getGameCube();
+        }
+
+        if (document.querySelector("#app > div > main > article > div > div.navpath.mb-3.hidden.sm\\:block > nav > ol > li:nth-child(3) > a").textContent == 'GameCube'){
+            injectGamecubeData(JSON.parse(localStorage.getItem('CollectionGameCube')));
+        }
+        else {
+            if(isNaN(collectionLastUpdated) || currentUnixTimestamp > collectionLastUpdated + updateInterval){
     
-            fetch(collectionLastModifiedURL)
-                .then(response => response.json())
-                .then(output => {
-    
-                if(output.result === undefined){ // archive.org returns 200/OK and {"error" : "*error description*"} on errors
-    
-                    throw 'Can\'t get last modified date from archive.org. ' + output.error;
-    
-                } else {
-    
-                    localStorage.setItem('collectionLastModified', output.result);
-    
-                }
-                if(parseInt(output.result) === collectionLastModified){ // don't download retroachievementsHashList if we already have the latest
-    
-                    localStorage.setItem('collectionLastUpdated', currentUnixTimestamp);
-                    injectArchiveGames(JSON.parse(localStorage.getItem('collectionROMList')));
-    
-                } else {
-    
-                    fetch(collectionDownloadURL + '_' + mainCollectionItem + '/' + retroachievementsHashList, {cache: 'no-cache'})
+                fetch(collectionLastModifiedURL)
+                    .then(response => response.json())
+                    .then(output => {
+        
+                    if(output.result === undefined){ // archive.org returns 200/OK and {"error" : "*error description*"} on errors
+        
+                        throw 'Can\'t get last modified date from archive.org. ' + output.error;
+        
+                    } else {
+        
+                        localStorage.setItem('collectionLastModified', output.result);
+        
+                    }
+                    if(parseInt(output.result) === collectionLastModified){ // don't download retroachievementsHashList if we already have the latest
+        
+                        localStorage.setItem('collectionLastUpdated', currentUnixTimestamp);
+                        injectArchiveGames(JSON.parse(localStorage.getItem('collectionROMList')));
+        
+                    } else {
+        
+                        fetch(collectionDownloadURL + '_' + mainCollectionItem + '/' + retroachievementsHashList, {cache: 'no-cache'})
+                            .then(response => response.json())
+                            .then(output => {
+                                injectArchiveGames(output);
+                                localStorage.setItem('collectionROMList', JSON.stringify(output));
+                                localStorage.setItem('collectionLastUpdated', currentUnixTimestamp);
+                        })
+                            .catch(error => {
+                                console.log(error);
+                                // if we can't download retroachievementsHashList
+                                injectArchiveGames(null, true, 'Can\'t get retroachievements hash list from archive.org. Please try again later.');
+                                localStorage.removeItem('collectionLastModified');
+                                localStorage.removeItem('collectionLastUpdated');
+                                localStorage.removeItem('collectionROMList');
+                        });
+                    }
+                })
+                    .catch(error => {
+        
+                    console.log(error);
+                    // we still have to let the end user know that script is working but archive.org is not
+                    injectArchiveGames(null, true, 'Can\'t get required information from archive.org. Please try again later.');
+                    localStorage.removeItem('collectionLastModified');
+                    localStorage.removeItem('collectionLastUpdated');
+                    localStorage.removeItem('collectionROMList');
+        
+                });
+        
+            } else {
+        
+                injectArchiveGames(JSON.parse(localStorage.getItem('collectionROMList')));
+        
+            }
+        }
+        
+
+        function getGameCube() {
+            fetch("https://raw.githubusercontent.com/Galaxycorn/Tampermonkey-scripts/refs/heads/main/gamecubeList.json", {cache: 'no-cache'})
                         .then(response => response.json())
                         .then(output => {
+                        console.log(output);
                         injectArchiveGames(output);
-                        localStorage.setItem('collectionROMList', JSON.stringify(output));
-                        localStorage.setItem('collectionLastUpdated', currentUnixTimestamp);
-                    })
+                        localStorage.setItem('CollectionGameCube', JSON.stringify(output));
+                        })
                         .catch(error => {
-    
-                        console.log(error);
-                        // if we can't download retroachievementsHashList
-                        injectArchiveGames(null, true, 'Can\'t get retroachievements hash list from archive.org. Please try again later.');
-                        localStorage.removeItem('collectionLastModified');
-                        localStorage.removeItem('collectionLastUpdated');
-                        localStorage.removeItem('collectionROMList');
-                    });
-                }
-            })
-                .catch(error => {
-    
-                console.log(error);
-                // we still have to let the end user know that script is working but archive.org is not
-                injectArchiveGames(null, true, 'Can\'t get required information from archive.org. Please try again later.');
-                localStorage.removeItem('collectionLastModified');
-                localStorage.removeItem('collectionLastUpdated');
-                localStorage.removeItem('collectionROMList');
-    
-            });
-    
-        } else {
-    
-            injectArchiveGames(JSON.parse(localStorage.getItem('collectionROMList')));
-    
+                            
+                            console.log(error);
+                            // if we can't download retroachievementsHashList
+                            injectArchiveGames(null, true, 'Can\'t get gamecube game list from archive.org. Please try again later.');
+                            localStorage.removeItem('CollectionGameCube');
+                        });
         }
+
         function injectArchiveGames(gameData, boolArchiveOrgDown = false, message = ''){
             let hashLists = document.querySelector("#app > div > main > article > div > div.flex.flex-col.gap-5 > div.flex.flex-col.gap-1 > div > ul").getElementsByTagName('li'); // get hash list
             let gameId = window.location.pathname.split("/")[2]; // get gameID from URL
@@ -137,16 +168,9 @@ window.addEventListener('load', () => {
                     retroHashNode.insertAdjacentHTML("beforeend", '' + message + '');
     
                 } else {
-                    console.log(gameId)
-                    console.log(gameData[gameId]);
-                    console.log(gameData[gameId][0]);
-                    console.log([retroHash]);
-                    console.log("before undefined");
-                    console.log(gameData[gameId][0][retroHash]);
                     try {
                        
                         if (gameData[gameId] != undefined && gameData[gameId][0][retroHash] != undefined){
-                            console.log("je suis pas fou");
                             let hashData = gameData[gameId][0][retroHash]; // for now, we only have one item in the gameData[gameId] array
                             let link, appendExtraInfo = '';
     
@@ -233,4 +257,27 @@ window.addEventListener('load', () => {
             }
         }
     })();
+
+    function injectGamecubeData(gameData){
+        let gameElement = document.querySelector("#app > div > main > article > div > div.flex.flex-col.gap-5 > div.flex.flex-col.gap-1 > div > ul > li:nth-child(1) > p > span");
+        let gameNames = gameElement.textContent;
+        let gameCorretedName = gameNames.split(')')[0].replaceAll(/[^\w\s]+/g, '.').replaceAll(/\s+/g, '.').replaceAll(/\.+/g, '.');;
+        console.log(gameCorretedName)
+            try {
+                const game = gameData.files.file.find(game => game._name.split('.NGC-ZTM.rar')[0] === gameCorretedName);
+                console.log(game)
+                if (game !== undefined) {
+                    link = 'https://archive.org/download/ngcgciso0z-ztm/' + '/' + gameCorretedName + '.NGC-ZTM.rar';
+                    if (game.filecount > 1) gameElement.insertAdjacentHTML("beforeend", '<p><a href="' + link + '">'+'Download game for both discs, only USA roms are available for the moment'+ '</a></p>');
+                    else gameElement.insertAdjacentHTML("beforeend", '<p><a href="' + link + '">'+'Download game, only USA roms are available for the moment'+ '</a></p>');
+                }
+                else {
+                    console.log("else")
+                    gameElement.insertAdjacentHTML("beforeend", '<p style="color:#FF0000"><b>Game not found, only USA roms are available for the moment</b></p>');
+                }
+                
+            } catch(error) {
+                console.log(error);
+            } 
+    }
 });
