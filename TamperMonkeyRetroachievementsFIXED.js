@@ -281,7 +281,7 @@
                 const game = gameData.files.file.find(game => game._name.split('.NGC-ZTM.rar')[0] === gameCorretedName);
                 console.log(game)
                 if (game !== undefined) {
-                    link = 'https://archive.org/download/ngcgciso0z-ztm/' + '/' + gameCorretedName + '.NGC-ZTM.rar';
+                    let link = 'https://archive.org/download/ngcgciso0z-ztm/' + '/' + gameCorretedName + '.NGC-ZTM.rar';
                     if (game.filecount > 1) gameElement.insertAdjacentHTML("beforeend", '<p><a href="' + link + '">'+'Download game for both discs, only USA roms are available for the moment'+ '</a></p>');
                     else gameElement.insertAdjacentHTML("beforeend", '<p><a href="' + link + '">'+'Download game, only USA roms are available for the moment'+ '</a></p>');
                 }
